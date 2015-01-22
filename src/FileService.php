@@ -5,14 +5,14 @@
  * Date: 19.11.2014
  * Time: 19:04
  */
-namespace samson\fs;
+namespace samsonphp\fs;
 
 use samson\core\CompressableService;
-use samson\core\Event;
+use samsonphp\event\Event;
 
 /**
  * File system module controller
- * @package samson\fs
+ * @package samsonphp\fs
  */
 class FileService extends CompressableService implements IFileSystem, \samsonos\core\IConfigurable
 {
@@ -20,12 +20,12 @@ class FileService extends CompressableService implements IFileSystem, \samsonos\
     protected $id = 'fs';
 
     /** @var string Configurable file service class name */
-    public $fileServiceClassName = 'samson\fs\LocalFileService';
+    public $fileServiceClassName = 'samsonphp\fs\LocalFileService';
 
     /** @var array Collection of configuration parameters */
     public $configuration = array();
 
-    /** @var \samson\fs\AbstractFileService Pointer to file system adapter */
+    /** @var \samsonphp\fs\AbstractFileService Pointer to file system adapter */
     protected $fileService;
 
     /**
@@ -35,19 +35,33 @@ class FileService extends CompressableService implements IFileSystem, \samsonos\
      */
     public function init(array $params = array())
     {
-        // If defined file service is not supported
-        if (!class_exists($this->fileServiceClassName)) {
+        if (!$this->loadExternalService($this->fileServiceClassName)) {
+
             // Signal error
             Event::fire(
                 'error',
                 array(
                     $this,
-                    'Cannot initialize file system adapter['.$this->fileServiceClassName.']'
+                    'Cannot initialize file system adapter[' . $this->fileServiceClassName . ']'
                 )
             );
-        } else {
-            /** @var \samson\fs\AbstractFileService Create file service instance */
-            $this->fileService = new $this->fileServiceClassName();
+        }
+
+        // Call parent initialization
+        return parent::init($params);
+    }
+
+    /**
+     * Load external file service instance
+     * @param string $serviceClassName File service class name for loading
+     * @return bool True if external service instance has been created
+     */
+    public function loadExternalService($serviceClassName)
+    {
+        // If defined file service is supported
+        if (class_exists($serviceClassName)) {
+            /** @var \samsonphp\fs\AbstractFileService Create file service instance */
+            $this->fileService = new $serviceClassName();
 
             // Set nested file service instance parameters
             foreach ($this->configuration as $key => $value) {
@@ -56,10 +70,11 @@ class FileService extends CompressableService implements IFileSystem, \samsonos\
 
             // Initialize file service
             $this->fileService->initialize();
+
+            return true;
         }
 
-        // Call parent initialization
-	    return parent::init($params);
+        return false;
     }
 
     /**

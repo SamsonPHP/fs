@@ -6,7 +6,7 @@
  * Time: 14:12
  */
 
-namespace samson\fs;
+namespace samsonphp\fs;
 
 /**
  * Local file system adapter implementation
@@ -87,6 +87,24 @@ class LocalFileService extends AbstractFileService
     }
 
     /**
+     * Get all entries in $path
+     * @param string $path Folfer path for listing
+     * @return array Collection of entries int folder
+     */
+    protected function directoryFiles($path)
+    {
+        $result = array();
+
+        // Get all entries in path
+        foreach (array_diff(scandir($path), array('..', '.')) as $entry) {
+            // Build full REAL path to entry
+            $result[] = realpath($path . '/' . $entry);
+        }
+
+        return $result;
+    }
+
+    /**
      * Get recursive $path listing collection
      * @param string $path Path for listing contents
      * @param array $restrict Collection of restricted paths
@@ -96,31 +114,19 @@ class LocalFileService extends AbstractFileService
     public function dir($path, $restrict = array(), & $result = array())
     {
         // Check if we can read this path
-        if (($handle = opendir($path)) !== false) {
-            // Fastest reading method
-            while (false !== ($entry = readdir($handle))) {
-                // Ignore root paths
-                if ($entry != '..' && $entry != '.') {
-                    // Build full REAL path to entry
-                    $fullPath = realpath($path . '/' . $entry);
-
-                    // If this is a file
-                    if (!$this->isDir($fullPath)) {
-                        $result[] = $fullPath;
-                    } elseif (in_array($fullPath, $restrict) === false) {
-                        // Check if this folder is not in ignored list
-                        // If this is a folder - go deeper in recursion
-                        $this->dir($fullPath, $restrict, $result);
-                    }
-                }
+        foreach ($this->directoryFiles($path) as $fullPath) {
+           // If this is a file
+            if (!$this->isDir($fullPath)) {
+                $result[] = $fullPath;
+            } elseif (in_array($fullPath, $restrict) === false) {
+                // Check if this folder is not in ignored list
+                // If this is a folder - go deeper in recursion
+                $this->dir($fullPath, $restrict, $result);
             }
-
-            // Close reading handle
-            closedir($handle);
-
-            // Sort results
-            sort($result);
         }
+
+        // Sort results
+        sort($result);
 
         return $result;
     }
