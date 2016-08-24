@@ -9,12 +9,13 @@ namespace samsonphp\fs;
 
 use samson\core\CompressableService;
 use samsonphp\event\Event;
+use samsonframework\core\ConfigurableInterface;
 
 /**
  * File system module controller
  * @package samsonphp\fs
  */
-class FileService extends CompressableService implements IFileSystem, \samsonos\core\IConfigurable
+class FileService extends CompressableService implements IFileSystem, ConfigurableInterface
 {
     /** @var string Module identifier */
     protected $id = 'fs';
